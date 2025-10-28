@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Soil Health Card Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-section {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .image-preview {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin: 0 auto;
+            display: block;
+        }
+
+        .location-info {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .soil-health-card {
+            display: none;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .card-header h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .parameters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .parameter-item {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .parameter-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .parameter-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .recommendations {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .error-message {
+            display: none;
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .parameters-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 AI Soil Health Card Generator</h1>
+            <p>Upload soil image to get instant soil health analysis</p>
+        </div>
+
+        <div class="main-card">
+            <div class="upload-section">
+                <h3>Upload Soil Image</h3>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📷</div>
+                    <p>Click here or drag and drop your soil image</p>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
+                        Supported formats: JPG, PNG, JPEG
+                    </p>
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <h4>Image Preview:</h4>
+                <img id="imagePreview" class="image-preview" alt="Soil image preview">
+            </div>
+
+            <div class="location-info" id="locationInfo">
+                <h4>📍 Location Information</h4>
+                <p id="locationText">Getting your location...</p>
+                <p><strong>Coordinates:</strong> <span id="coordinates">-</span></p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn" id="analyzeBtn" onclick="analyzeImage()" disabled>
+                    🔍 Analyze Soil Health
+                </button>
+            </div>
+
+            <div class="loading" id="loadingSection">
+                <div class="spinner"></div>
+                <p>Analyzing your soil sample using AI...</p>
+                <p style="font-size: 0.9rem; color: #666;">This may take a few moments</p>
+            </div>
+        </div>
+
+        <div class="soil-health-card" id="soilHealthCard">
+            <div class="card-header">
+                <h2>🏆 Soil Health Report</h2>
+                <p id="reportLocation">Location: Loading...</p>
+                <p id="reportDate"></p>
+            </div>
+
+            <div class="parameters-grid">
+                <div class="parameter-item">
+                    <div class="parameter-value" id="nitrogenValue">-</div>
+                    <div class="parameter-label">Nitrogen (N) %</div>
+                </div>
+                <div class="parameter-item">
+                    <div class="parameter-value" id="phosphorusValue">-</div>
+                    <div class="parameter-label">Phosphorus (P) %</div>
+                </div>
+                <div class="parameter-item">
+                    <div class="parameter-value" id="potassiumValue">-</div>
+                    <div class="parameter-label">Potassium (K) %</div>
+                </div>
+                <div class="parameter-item">
+                    <div class="parameter-value" id="phValue">-</div>
+                    <div class="parameter-label">pH Level</div>
+                </div>
+                <div class="parameter-item">
+                    <div class="parameter-value" id="organicCarbonValue">-</div>
+                    <div class="parameter-label">Organic Carbon %</div>
+                </div>
+                <div class="parameter-item">
+                    <div class="parameter-value" id="soilTypeValue">-</div>
+                    <div class="parameter-label">Soil Type</div>
+                </div>
+            </div>
+
+            <div class="recommendations">
+                <h4>📋 Recommendations</h4>
+                <div id="recommendationsContent">
+                    <p>Based on your soil analysis, here are our recommendations...</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn" onclick="downloadReport()">📄 Download Report</button>
+                <button class="btn" onclick="resetApp()" style="margin-left: 10px;">🔄 New Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let userLocation = null;
+        let uploadedImage = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            getUserLocation();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Drag and drop functionality
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('drop', handleDrop);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+        }
+
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        userLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        };
+                        document.getElementById('coordinates').textContent = 
+                            `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`;
+                        document.getElementById('locationText').textContent = 
+                            'Location captured successfully!';
+                    },
+                    function(error) {
+                        document.getElementById('locationText').textContent = 
+                            'Location access denied. Using default coordinates.';
+                        userLocation = { latitude: 12.9716, longitude: 77.5946 }; // Bangalore default
+                        document.getElementById('coordinates').textContent = 
+                            `${userLocation.latitude}, ${userLocation.longitude}`;
+                    }
+                );
+            } else {
+                document.getElementById('locationText').textContent = 
+                    'Geolocation not supported. Using default coordinates.';
+                userLocation = { latitude: 12.9716, longitude: 77.5946 };
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please select a valid image file (JPG, PNG, JPEG)');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showError('Image size should be less than 10MB');
+                return;
+            }
+
+            uploadedImage = file;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
+                document.getElementById('previewSection').style.display = 'block';
+                document.getElementById('analyzeBtn').disabled = false;
+                hideError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function analyzeImage() {
+            if (!uploadedImage || !userLocation) {
+                showError('Please upload an image and allow location access');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('analyzeBtn').disabled = true;
+
+            try {
+                // Simulate API call to your Flask backend
+                const formData = new FormData();
+                formData.append('image', uploadedImage);
+                formData.append('latitude', userLocation.latitude);
+                formData.append('longitude', userLocation.longitude);
+
+                // Simulate API response (replace with actual API call)
+                await simulateAPICall();
+                
+                // Display results
+                displaySoilHealthCard();
+
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                showError('Analysis failed. Please try again.');
+            } finally {
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+
+        async function simulateAPICall() {
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Return mock data (replace with actual API response)
+            return {
+                nitrogen: 2.1,
+                phosphorus: 1.8,
+                potassium: 2.5,
+                ph: 6.8,
+                organicCarbon: 1.2,
+                soilType: 'Clay Loam',
+                district: 'Bangalore Urban',
+                taluk: 'Bangalore North',
+                recommendations: [
+                    'Apply organic fertilizers to improve nitrogen content',
+                    'pH level is optimal for most crops',
+                    'Consider adding phosphorus-rich fertilizers',
+                    'Soil organic matter is good for plant growth'
+                ]
+            };
+        }
+
+        function displaySoilHealthCard() {
+            // Mock data - replace with actual API response
+            const soilData = {
+                nitrogen: 2.1,
+                phosphorus: 1.8,
+                potassium: 2.5,
+                ph: 6.8,
+                organicCarbon: 1.2,
+                soilType: 'Clay Loam',
+                district: 'Bangalore Urban',
+                taluk: 'Bangalore North',
+                recommendations: [
+                    'Apply organic fertilizers to improve nitrogen content',
+                    'pH level is optimal for most crops',
+                    'Consider adding phosphorus-rich fertilizers',
+                    'Soil organic matter is good for plant growth'
+                ]
+            };
+
+            // Update card values
+            document.getElementById('nitrogenValue').textContent = soilData.nitrogen + '%';
+            document.getElementById('phosphorusValue').textContent = soilData.phosphorus + '%';
+            document.getElementById('potassiumValue').textContent = soilData.potassium + '%';
+            document.getElementById('phValue').textContent = soilData.ph;
+            document.getElementById('organicCarbonValue').textContent = soilData.organicCarbon + '%';
+            document.getElementById('soilTypeValue').textContent = soilData.soilType;
+
+            // Update location and date
+            document.getElementById('reportLocation').textContent = 
+                `Location: ${soilData.district}, ${soilData.taluk}`;
+            document.getElementById('reportDate').textContent = 
+                `Report Date: ${new Date().toLocaleDateString()}`;
+
+            // Update recommendations
+            const recommendationsDiv = document.getElementById('recommendationsContent');
+            recommendationsDiv.innerHTML = soilData.recommendations
+                .map(rec => `<p>• ${rec}</p>`)
+                .join('');
+
+            // Show the card
+            document.getElementById('soilHealthCard').style.display = 'block';
+            
+            // Scroll to results
+            document.getElementById('soilHealthCard').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        function downloadReport() {
+            // Generate and download PDF report
+            alert('PDF download functionality would be implemented here');
+        }
+
+        function resetApp() {
+            // Reset all form elements
+            document.getElementById('fileInput').value = '';
+            document.getElementById('previewSection').style.display = 'none';
+            document.getElementById('soilHealthCard').style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = true;
+            uploadedImage = null;
+            hideError();
+            
+            // Scroll back to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
